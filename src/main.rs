@@ -38,25 +38,31 @@ fn main() {
 struct Content {
 
     text: String,
+    location: String,
     index: u128,
 
 }
 
 impl Content {
 
-    pub fn new(text: String, index: u128) -> Self {
+    pub fn new(text: String, location:String, index: u128) -> Self {
         Content {
             text,
+            location,
             index
         }
     }
 
 }
 
+
+
+// Will scrap this in the future 
+
 impl std::fmt::Display for Content {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     
-        write!(f, "{}: {}", self.index, self.text)
+        write!(f, "{} |  {}", self.index, self.text)
     }
 }
 
@@ -79,9 +85,8 @@ fn find_in_file(text: String, filename: String) {
     for (index, line) in lines.enumerate() {
 
         if line.contains(&text) {
-            buffer.push(
-
-                Content::new(line.to_string(), index as u128)
+            buffer.push(                                    // Reeeeaaaly dont like this
+                Content::new(line.to_string(), filename.clone(), index as u128)
             )
         }
 
@@ -93,11 +98,39 @@ fn find_in_file(text: String, filename: String) {
         exit(0);
     }
 
-    for line in buffer {
+    println!("Matches found!!\n\n");
 
-        println!("Matches Found!!\n");
-        println!("{}", line);
+    for (index, line) in buffer.iter().enumerate() {
 
+        // This is the format i want!
+
+        //   --> src\main.rs:47:12
+        //    |
+        // 47 |     pub fn new(text: String, index: u128) -> Self {
+        //    |            ^^^
+        //    |
+        
+                      // EWWW gross
+        let offset = create_whitespace_offset(line.index.to_string().encode_utf16().count());
+        
+        
+        print!(" {}--> {}\n", &offset, line.location);
+        print!(" {} |\n", &offset);
+        print!(" {} |  {}\n", line.index, line.text);
+        print!(" {} |\n", &offset);
+        print!(" {} |\n", &offset);
+
+    }
+
+    fn create_whitespace_offset(lenth: usize) -> String {
+
+        let mut buf = String::new();
+
+        for _ in [0..lenth] {
+            buf.push(' ')
+        }
+
+        buf
     }
 
 }
