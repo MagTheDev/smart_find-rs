@@ -9,8 +9,8 @@ fn main() {
                             .author("MagSG")
                             .about("Streamer272's c-smart_find that i RIIR")
                             .arg(Arg::with_name("text")
-                                .short("t")
-                                .long("text")
+                                .short("q")
+                                .long("query")
                                 .value_name("TEXT")
                                 .required(false)
                                 .help("The text you want to search for")
@@ -24,14 +24,14 @@ fn main() {
                                 .takes_value(true))
                             .arg(Arg::with_name("file_extension")
                                 .short("e")
-                                .long("file-extensions")
+                                .long("file-extension")
                                 .value_name("FILE_EXTENSION")
                                 .long_help("Filetypes you want to search in\nUse with recursive search\nDefault: None")
                                 .takes_value(true))
                             .get_matches();
 
                             
-                            find_in_file("key".to_string(), args.value_of("file").unwrap_or("cargo.toml").to_string())
+    find_in_file(args.value_of("text").unwrap().to_string(), args.value_of("file").unwrap().to_string())
 
 }
 
@@ -67,7 +67,7 @@ impl std::fmt::Display for Content {
 }
 
 
-fn find_in_file(text: String, filename: String) {
+fn find_in_file(query: String, filename: String) {
 
     let file_ent = PathBuf::from(&filename);
 
@@ -84,10 +84,10 @@ fn find_in_file(text: String, filename: String) {
 
     for (index, line) in lines.enumerate() {
 
-        if line.contains(&text) {
+        if line.contains(&query) {
             buffer.push(                                    // Reeeeaaaly dont like this
                 Content::new(line.to_string(), filename.clone(), index as u128)
-            )
+            );
         }
 
     }
@@ -100,37 +100,50 @@ fn find_in_file(text: String, filename: String) {
 
     println!("Matches found!!\n\n");
 
-    for (index, line) in buffer.iter().enumerate() {
+    for (_index, line) in buffer.iter().enumerate() {
 
-        // This is the format i want!
+        let white_line_offset = create_offset(line.index.to_string().encode_utf16().count(), ' ');
+        let carrots = create_offset(query.encode_utf16().count(), '^');
 
-        //   --> src\main.rs:47:12
-        //    |
-        // 47 |     pub fn new(text: String, index: u128) -> Self {
-        //    |            ^^^
-        //    |
-        
-                      // EWWW gross
-        let offset = create_whitespace_offset(line.index.to_string().encode_utf16().count());
-        
-        
-        print!(" {}--> {}\n", &offset, line.location);
-        print!(" {} |\n", &offset);
+        let query_inidices: Vec<_> = line.text.match_indices(&query).collect();
+        let mut carrot_offset = String::new();
+
+        {
+
+            let mut total: u32  = 0;
+
+            for (loc , _) in query_inidices {
+
+                let offset = &create_offset(loc - total as usize, ' ');
+
+                carrot_offset.push_str(offset);
+                carrot_offset.push_str(&carrots);
+                carrot_offset.push_str(" ");
+
+                total += (offset.encode_utf16().count() as u32) + carrots.encode_utf16().count() as u32 + 1;
+
+            }
+
+        }
+
+
+        print!(" {}--> {}:{}\n", &white_line_offset, line.location, line.index);
+        print!(" {} |\n", &white_line_offset);
         print!(" {} |  {}\n", line.index, line.text);
-        print!(" {} |\n", &offset);
-        print!(" {} |\n", &offset);
+        print!(" {} |  {}\n", &white_line_offset, carrot_offset);
+        print!(" {} |\n\n", &white_line_offset);
+
 
     }
 
-    fn create_whitespace_offset(lenth: usize) -> String {
+    fn create_offset(length: usize, char: char) -> String {
 
         let mut buf = String::new();
 
-        for _ in [0..lenth] {
-            buf.push(' ')
+        for _ in 0..length {
+            buf.push(char);
         }
-
         buf
     }
-
+    
 }
