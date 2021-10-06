@@ -4,14 +4,16 @@ use clap::{App, Arg};
 
 fn main() {
     
+    // Initalize argument parser: clap
+
     let args = App::new("Smart_Find-rs")
                             .version("1.0")
                             .author("MagSG")
                             .about("Streamer272's c-smart_find that i RIIR")
-                            .arg(Arg::with_name("text")
+                            .arg(Arg::with_name("query")
                                 .short("q")
                                 .long("query")
-                                .value_name("TEXT")
+                                .value_name("QUERY")
                                 .required(false)
                                 .help("The text you want to search for")
                                 .takes_value(true))
@@ -30,8 +32,8 @@ fn main() {
                                 .takes_value(true))
                             .get_matches();
 
-                            
-    find_in_file(args.value_of("text").unwrap().to_string(), args.value_of("file").unwrap().to_string())
+ 
+    
 
 }
 
@@ -76,12 +78,15 @@ fn find_in_file(query: String, filename: String) {
         Ok(k) => k,
         Err(e) => {eprintln!("[ERROR] {}", e); exit(1)}
     };
+
+
     let lines = content.lines();
     
     // Stores all the lines, so that we can have nice formatting
     let mut buffer: Vec<Content> = Vec::new();
 
-
+    // Goes through all the lines collected from file, new Content instance will be created if query is found in 
+    // line, then pushed to buffer
     for (index, line) in lines.enumerate() {
 
         if line.contains(&query) {
@@ -98,16 +103,26 @@ fn find_in_file(query: String, filename: String) {
         exit(0);
     }
 
+
     println!("Matches found!!\n\n");
 
-    for (_index, line) in buffer.iter().enumerate() {
 
-        let white_line_offset = create_offset(line.index.to_string().encode_utf16().count(), ' ');
+    // Loops through all Content instances from buffer
+    for (_index, content) in buffer.iter().enumerate() {
+
+        // Creates the offset of index number 
+        let white_line_offset = create_offset(content.index.to_string().encode_utf16().count(), ' ');
+
+        // Creates a string wiht ammount of carrots that correspond to length of query
         let carrots = create_offset(query.encode_utf16().count(), '^');
 
-        let query_inidices: Vec<_> = line.text.match_indices(&query).collect();
+        // Gets all occurences of query in content's line
+        let query_inidices: Vec<_> = content.text.match_indices(&query).collect();
+
+        // Buffer for whitespace offset for carrots
         let mut carrot_offset = String::new();
 
+        // Closure just for aesthetic purposes
         {
 
             let mut total: u32  = 0;
@@ -118,8 +133,8 @@ fn find_in_file(query: String, filename: String) {
 
                 carrot_offset.push_str(offset);
                 carrot_offset.push_str(&carrots);
-                carrot_offset.push_str(" ");
-
+                carrot_offset.push(' ');
+                                                                  // Extract this to a variable              
                 total += (offset.encode_utf16().count() as u32) + carrots.encode_utf16().count() as u32 + 1;
 
             }
@@ -127,11 +142,11 @@ fn find_in_file(query: String, filename: String) {
         }
 
 
-        print!(" {}--> {}:{}\n", &white_line_offset, line.location, line.index);
-        print!(" {} |\n", &white_line_offset);
-        print!(" {} |  {}\n", line.index, line.text);
-        print!(" {} |  {}\n", &white_line_offset, carrot_offset);
-        print!(" {} |\n\n", &white_line_offset);
+        println!(" {}--> {}:{}", &white_line_offset, content.location, content.index);
+        println!(" {} |", &white_line_offset);
+        println!(" {} |  {}", content.index, content.text);
+        println!(" {} |  {}", &white_line_offset, carrot_offset);
+        println!(" {} |\n", &white_line_offset);
 
 
     }
